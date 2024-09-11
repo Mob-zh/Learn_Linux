@@ -7,12 +7,11 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <sys/time.h>
 #include "mytbf.h"
 
 #define MYTBF_MAX 1024
-typedef void (*sighandler_t)(int);
-
+static struct sigaction alrm_sa_save;
 
 struct mytbf_st {
 	int token;
@@ -24,7 +23,7 @@ struct mytbf_st {
 
 static struct mytbf_st* job[MYTBF_MAX];
 static int inited = 0;
-static sighandler_t alrm_handler_save;
+static struct sigaction alarm_sa_save;
 
 
 static int get_free_pos(void){
@@ -33,16 +32,19 @@ static int get_free_pos(void){
 		
 		if(job[i] == NULL)
 			return i;
-
 	}
 	
 	return -1;
 }
 
-static void alrm_handler(int s){
+static void alrm_action(int s,siginfo_t *infop,void *unused){
 
 		int i = 1;
-		alarm(1);
+
+		if(infop->si_code != SI_KERNEL){
+			return ;
+		}
+
 		for(i = 0;i < MYTBF_MAX;i++){
 			
 			if(job[i] != NULL){
@@ -57,8 +59,22 @@ static void alrm_handler(int s){
 static void module_unload(void);
 static void module_load(void)
 {
-	signal(SIGALRM,alrm_handler);
-	alarm(1);
+
+	
+	struct sigaction sa;
+	struct itimerval itv;
+
+	sa.sa_sigaction = alrm_action;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_SIGINFO;
+
+	sigaction(SIGALRM,&sa,&alrm_sa_save);
+
+	itv.it_interval.tv_sec = 1;
+	itv.it_interval.tv_usec = 0;
+    itv.it_value.tv_sec = 1;
+	itv.it_value.tv_usec = 0;
+	setitimer(ITIMER_REAL,&itv,NULL);
 
 	//用钩子函数处理退出
 	atexit(module_unload);
@@ -67,8 +83,18 @@ static void module_load(void)
 static void module_unload(void)
 {
 	int i = 0;
-	signal(SIGALRM,alrm_handler_save);
-	alarm(0);
+
+	struct itimerval itv;
+	
+	sigaction(SIGALRM,&alrm_sa_save,NULL);
+
+	itv.it_interval.tv_sec = 1;
+	itv.it_interval.tv_usec = 0;
+    itv.it_value.tv_sec = 1;
+	itv.it_value.tv_usec = 0;
+	setitimer(ITIMER_REAL,&itv,NULL);
+
+
 	for(i = 0 ;i < MYTBF_MAX;i++){
 		free(job[i]);
 	}
@@ -79,10 +105,10 @@ mytbf_t *mytbf_init(int bps,int burst)
 	//只在功能开启时注册一次
 	if(!inited)
 	{
-		alrm_handler_save = signal(SIGALRM,alrm_handler);
-		alarm(1);
+		module_load();
 		inited = 1;
 	}
+	
 	struct mytbf_st *me;
 	int pos = -1;
 	pos = get_free_pos();
@@ -116,7 +142,7 @@ int mytbf_fetchtoken(mytbf_t * ptr,int size)
 	if(size <= 0){
 		return -EINVAL;
 	}
-
+	//wait new token
 	while(me->token <= 0)
 		pause();
 

@@ -16,7 +16,7 @@
 static volatile int token = 0;
 
 //令牌桶
-//实现mycat的流空功能
+//实现mycat的流cntl功能
 int main(int argc,char** argv){
 	
 	int fds , fdd = 1;
@@ -29,11 +29,13 @@ int main(int argc,char** argv){
 		exit(1);
 	}
 	
+	//init tbf
 	tbf = mytbf_init(CPS,BURST);
 	if(tbf == NULL){
 		fprintf(stderr,"mytbf_init() failed!\n");
 	}
 
+	//avoid signal interrupt the open()
 	do{
 		fds = open(argv[1],O_RDONLY);
 		if(fds < 0){
@@ -45,7 +47,8 @@ int main(int argc,char** argv){
 		}
 	}while(fds < 0);
 	
-
+	
+	
 	while(1)
 	{
 		size = mytbf_fetchtoken(tbf,BUFFERSIZE);

@@ -1,1 +1,0 @@
-CFLAG+=-Wall -fopenmp

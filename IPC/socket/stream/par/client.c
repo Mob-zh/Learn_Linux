@@ -17,6 +17,7 @@ static void client_job(int sd){
 int main(int argc ,char** argv){
 
 	int sd;
+
 	struct sockaddr_in raddr;
 	socklen_t raddr_len;	
 	char ipstr[IPSTRSIZE];

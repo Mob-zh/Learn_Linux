@@ -3,7 +3,7 @@
 
 #define JOB_MAX	1024
 
-typedef void at_jobfunc_t(void*)
+typedef void at_jobfunc_t(void*);
 
 //任务完成后不要自行删除，就像进程需要被收尸
 

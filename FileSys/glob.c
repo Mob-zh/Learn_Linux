@@ -2,7 +2,7 @@
 #include <glob.h>
 #include <stdlib.h>
 
-#define PAT "/etc/a*.conf"
+#define PAT "/etc/*"
 
 #if 0
 int errfunc_(const char *errpath,int errno){

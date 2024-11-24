@@ -1,7 +1,7 @@
 #ifndef _SERVER_CONF_H_
 #define _SERVER_CONF_H_
 
-#define DEFAULT_MEDIADIR	"/var/media/"
+#define DEFAULT_MEDIADIR	"/var/media"
 #define DEFAULT_IF			"ens33"
 
 enum

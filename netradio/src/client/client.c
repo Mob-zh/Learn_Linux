@@ -135,7 +135,7 @@ int main(int argc, char *argv[]){
 
 	laddr.sin_family = AF_INET;
 	laddr.sin_port = htons(atoi(client_conf.rcvport));
-	inet_pton(AF_INET,"0,0,0,0",&laddr.sin_addr.s_addr);
+	inet_pton(AF_INET,"0.0.0.0",&laddr.sin_addr.s_addr);
 	if(bind(sd,(void*)&laddr,sizeof(laddr)) < 0)
 	{
 		perror("bind()");
@@ -154,19 +154,15 @@ int main(int argc, char *argv[]){
 		exit(-1);
 	}
 	if(pid == 0){//child
-		//关闭socket
-		close(sd);
-		//关闭写端
-		close(pd[1]);
-		//将管道读端作为标准输入，因为解码器只能获得标准输入的内容
-		dup2(pd[0],0);
-		if(pd[0] > 0){
-			close(pd[0]);
-		}
-
-		execl("/bin/sh","sh","-c",client_conf.player_cmd,NULL);
-		perror("execl()");
-		exit(-1);
+		        close(sd);//socket
+        close(pd[1]);//0:read, 1:write
+        dup2(pd[0], 0);//set pd[0] as stdin
+        if(pd[0] > 0) //close pd[0]
+            close(pd[0]);
+        /*use shell to parse DEFAULT_PLAYERCMD, NULL means to end*/
+        execl("/bin/sh", "sh", "-c", client_conf.player_cmd, NULL);
+        perror("execl()");
+        exit(1);
 	}
 	//parent
 	//父进程：从网络上收包,发送给子进程
@@ -197,15 +193,17 @@ int main(int argc, char *argv[]){
 	
 	//打印节目单并选择频道
 	struct msg_listentry_st *pos;
-
+	//printf("msg_list size:%ld\nlen = %d\n",sizeof(msg_list)+len,len);
 	for(pos = msg_list->entry;(char*)pos < ((char*)msg_list + len);pos=(void*)((char*)pos) + ntohs(pos->len))
 	{
+		//printf("pos = %ld \nmax = %ld\npos->len:%d\nnext pos:%ld\n",(void *)pos,((void*)msg_list + len),ntohs(pos->len),(void*)((char*)pos) + ntohs(pos->len));
 		printf("channel %d : %s\n",pos->chnid,pos->desc);
 	}
 
-	free(msg_list);
+	//free(msg_list);
 	
-	while(1){
+	printf("输入频道");
+	while(ret < 1){
 		ret = scanf("%d",&chosenid);
 		if(ret != 1)
 			exit(-1);
@@ -221,6 +219,7 @@ int main(int argc, char *argv[]){
 		exit(-1);
 	}
 	
+	raddr_len = sizeof(raddr);
 	while(1){
 		len = recvfrom(sd,msg_channel,MSG_CHANNEL_MAX,0,(void*)&raddr,&raddr_len);
 		if(raddr.sin_addr.s_addr != serveraddr.sin_addr.s_addr || raddr.sin_port != serveraddr.sin_port){
@@ -234,7 +233,7 @@ int main(int argc, char *argv[]){
 
 		if(msg_channel->chnid == chosenid){
 			fprintf(stdout,"accepted msg:%d received\n",msg_channel->chnid);
-			if(writen(pd[1],msg_channel->data,len-sizeof(chnid_t)) < 0){
+			if(writen(pd[1],(char *)msg_channel->data,len-sizeof(chnid_t)) < 0){
 				perror("writen()");
 				exit(0);
 			}

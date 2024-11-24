@@ -8,11 +8,11 @@ struct mlib_listentry_st{
 	char *desc;
 };
 
-int mlib_getchnlist(struct mlib_listentry_st **,int *);
+int mlib_getchnlist(struct mlib_listentry_st **result,int *resnum);
 
-int mlib_freechnlist(struct mlib_listentry_st *);
+int mlib_freechnlist(struct mlib_listentry_st *result);
 
-ssize_t mlib_readchn(chnid_t ,void *,size_t);
+ssize_t mlib_readchn(chnid_t chnid,void *buf,size_t size);
 
 #endif
 

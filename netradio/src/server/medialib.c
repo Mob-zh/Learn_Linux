@@ -32,7 +32,7 @@ struct channel_context_st{
 static struct channel_context_st chnnel[CHNNR+1];
 
 static struct channel_context_st* path2entry(const char *path){
-	
+
 	struct channel_context_st *me;
 	char pathstr[PATHSIZE] = {'\0'};
 	char linebuf[LINEBUFSIZE];
@@ -85,10 +85,12 @@ static struct channel_context_st* path2entry(const char *path){
 	}
 	me->chnid = curr_id;
 	curr_id++;
+	syslog(LOG_DEBUG,"path2entry success");
+
 	return me;
 }
 
-//
+
 int mlib_getchnlist(struct mlib_listentry_st **result,int *resnum){
 	
 	char path[PATHSIZE];
@@ -136,7 +138,61 @@ int mlib_getchnlist(struct mlib_listentry_st **result,int *resnum){
 	return 0;
 }
 
-int mlib_freechnlist(struct mlib_listentry_st *);
+int mlib_freechnlist(struct mlib_listentry_st *result){
 
-ssize_t mlib_readchn(chnid_t ,void *,size_t);
+	free(result);
+	return 0;
+}
+
+static int open_next(chnid_t chnid){
+	for(int i = 0;i < chnnel[chnid].mp3glob.gl_pathc;i++){
+		chnnel[chnid].pos++;
+
+		if(chnnel[chnid].pos == chnnel[chnid].mp3glob.gl_pathc){
+			chnnel[chnid].pos = 0;
+			break;
+		}
+
+		close(chnnel[chnid].fd);
+		open(chnnel[chnid].mp3glob.gl_pathv[chnnel[chnid].pos],O_RDONLY);
+		if(chnnel[chnid].fd < 0){
+			syslog(LOG_WARNING,"open():%s",strerror(errno));
+			return -1;
+		}
+		else{	
+			chnnel[chnid].offset = 0;
+			return 0;
+		}
+	}
+	syslog(LOG_ERR,"channel %d :there is no success open",chnid);
+	return 0;
+}
+
+ssize_t mlib_readchn(chnid_t chnid,void *buf,size_t size){
+	int tbfsize;
+	int len;
+	tbfsize = mytbf_fetchtoken(chnnel[chnid].tbf,size);
+	
+	while(1){
+		len = pread(chnnel[chnid].fd,buf,tbfsize,chnnel[chnid].offset);
+		if(len < 0){
+			syslog(LOG_WARNING,"media file %s pread():failed",chnnel[chnid].mp3glob.gl_pathv[chnnel[chnid].pos]);
+			open_next(chnid);
+			
+		}
+		else if(len == 0){
+			syslog(LOG_DEBUG,"media file %s over",chnnel[chnid].mp3glob.gl_pathv[chnnel[chnid].pos]);
+			open_next(chnid);
+		}
+		else{	//len > 0
+			chnnel[chnid].offset+=len;
+			break;
+		}
+	}
+	if(tbfsize - len > 0){
+		mytbf_returntoken(chnnel[chnid].tbf,tbfsize-len);
+	}
+	
+	return len;
+}
 

@@ -26,6 +26,13 @@ static pthread_once_t  init_once = PTHREAD_ONCE_INIT;//初始化模块使用的�
 
 static pthread_t alrm_tid;//时钟线程tid
 
+static int min(int a,int b){
+	if(a < b){
+		return a;
+	}
+	else return b;
+}
+
 static void *thr_alrm(void *p){
 	int i = 0;
 	while(1){

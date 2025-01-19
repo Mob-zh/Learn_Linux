@@ -1,8 +1,7 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
-#define DEFAULT_PLAYERCMD	""/usr/bin/mpg123 -q -""
-
+#define DEFAULT_PLAYERCMD " /usr/bin/mpg123  - "
 
 struct client_conf_st
 {
@@ -14,4 +13,3 @@ struct client_conf_st
 extern struct client_conf_st client_conf;
 
 #endif
-

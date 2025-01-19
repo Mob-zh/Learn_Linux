@@ -1,8 +1,8 @@
 #ifndef _SERVER_CONF_H_
 #define _SERVER_CONF_H_
 
-#define DEFAULT_MEDIADIR	"/var/media"
-#define DEFAULT_IF			"ens33"
+#define DEFAULT_MEDIADIR "/home/mob/media"
+#define DEFAULT_IF "ens33"
 
 enum
 {
@@ -10,7 +10,8 @@ enum
 	RUN_FOREGROUND,
 };
 
-struct server_conf_st{
+struct server_conf_st
+{
 	char *rcvport;
 	char *mgroup;
 	char *media_dir;
@@ -20,7 +21,6 @@ struct server_conf_st{
 
 extern struct server_conf_st server_conf;
 extern int serversd;
-extern struct sockaddr_in sndaddr;  //对端地址
+extern struct sockaddr_in sndaddr; //对端地址
 
 #endif
-
